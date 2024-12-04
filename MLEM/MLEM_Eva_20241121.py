@@ -34,7 +34,7 @@ axs[0,1].set_title('Sinogram')
 
 # iteration zero (k=0)
 mlem_recon = np.ones(true_object.shape) # give the image shape of the true object to define/guess the size
-sino_ones = np.ones(sinogram.shape) #
+sino_ones = np.ones(sinogram.shape)
 sens_image = iradon(sino_ones, azi_angles, circle=False, filter_name=None)
 
 
