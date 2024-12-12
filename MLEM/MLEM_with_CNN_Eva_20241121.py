@@ -1,8 +1,8 @@
-import device
 from skimage.data import brain
 from skimage.transform import resize, rescale
 
 import numpy as np
+import device
 import torch, torch.nn as nn
 import cv2
 
