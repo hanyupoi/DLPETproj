@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from scipy.ndimage import rotate
 import os
 
-# Set device for Mac (CPU-based execution)
+# (CPU-based execution)
 device = torch.device("cpu")
 
 # Image dimensions
