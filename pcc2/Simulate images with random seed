@@ -1,0 +1,97 @@
+import torch
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.ndimage import rotate
+import os
+
+# (CPU-based execution)
+device = torch.device("cpu")
+
+# Image dimensions
+IMG_WIDTH = 128
+IMG_HEIGHT = 128
+NUM_IMAGES = 1000
+
+# Define the folders
+PHANTOM_FOLDER = "phantom_dataset"  # Stores full dataset (.pt file)
+IMAGE_FOLDER = "image_dataset"  # Stores first 10 images as PNGs
+
+# Create the directories if they don't exist
+os.makedirs(PHANTOM_FOLDER, exist_ok=True)
+os.makedirs(IMAGE_FOLDER, exist_ok=True)
+
+def generate_random_ellipse(image_size, num_ellipses=3, max_rotation=30, seed=None):
+    """
+    Generates a 2D synthetic phantom with random ellipses (or irregular circles) 
+    with different activity levels (intensity values).
+    
+    Args:
+        image_size (tuple): (height, width) of the image.
+        num_ellipses (int): Number of ellipses in the image.
+        max_rotation (int): Maximum rotation in degrees.
+        seed (int, optional): Random seed for reproducibility.
+
+    Returns:
+        torch.Tensor: A tensor representing the generated image.
+    """
+    if seed is not None:
+        np.random.seed(seed)  # Set a seed for controlled randomness
+
+    height, width = image_size
+    phantom = np.zeros((height, width))
+
+    for _ in range(num_ellipses):
+        # Random center position
+        x_center = np.random.randint(width * 0.2, width * 0.8)
+        y_center = np.random.randint(height * 0.2, height * 0.8)
+        
+        # Random semi-axes lengths
+        a = np.random.randint(width * 0.1, width * 0.3)  # Semi-major axis
+        b = np.random.randint(height * 0.1, height * 0.3)  # Semi-minor axis
+
+        # Random rotation
+        angle = np.random.uniform(-max_rotation, max_rotation)
+
+        # Generate a random activity level (intensity)
+        intensity = np.random.uniform(0.3, 1.0)  # Intensity between 0.3 and 1.0
+
+        # Generate ellipse mask
+        y, x = np.ogrid[:height, :width]
+        mask = (((x - x_center) / a) ** 2 + ((y - y_center) / b) ** 2) <= 1
+
+        # Rotate the mask slightly
+        rotated_mask = rotate(mask.astype(float), angle, reshape=False, mode="nearest")
+
+        # Multiply mask by intensity and add to phantom
+        phantom += rotated_mask * intensity
+
+    # Normalize to range [0, 1] to avoid overflow
+    phantom = np.clip(phantom, 0, 1)
+
+    return torch.tensor(phantom, dtype=torch.float32)
+
+# Generate multiple images with variations
+dataset = []
+
+for i in range(NUM_IMAGES):
+    # Set a unique seed for each image based on the loop index
+    seed = i + 42  # Any offset value to make it different each time
+
+    phantom_image = generate_random_ellipse((IMG_HEIGHT, IMG_WIDTH), num_ellipses=3, seed=seed)
+
+    # Save as tensor
+    dataset.append(phantom_image)
+
+    # Only save the first 10 images in "image_dataset"
+    if i < 10:
+        plt.imsave(f"{IMAGE_FOLDER}/phantom_{i}.png", phantom_image.numpy(), cmap="gray")
+
+# Convert to tensor dataset
+phantom_dataset = torch.stack(dataset)
+
+# Save dataset to file
+torch.save(phantom_dataset, f"{PHANTOM_FOLDER}/phantom_dataset.pt")
+
+print(f"Generated {NUM_IMAGES} synthetic phantom images.")
+print(f"Saved first 10 images to {IMAGE_FOLDER}")
+print(f"Full dataset saved in {PHANTOM_FOLDER}/phantom_dataset.pt")
